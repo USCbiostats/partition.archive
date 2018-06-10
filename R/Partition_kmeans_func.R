@@ -65,7 +65,7 @@ km_icc = function( mymat, k ){
 #' 
 #' @param mymat Full dataset, NxP matrix or dataframe with N samples in rows
 #' and P variables in columns.
-#' @param threshold.icc This values specifies the maximum information loss for
+#' @param threshold.icc This value (0 < threshold.icc < 1) specifies the maximum information loss for
 #' any cluster as measured by the ICC. Using k-means, the input dataset is
 #' reduced to an NxK dataset, where K is as small as small as possible subject
 #' the constraint. Reducing the threshold.icc yields a more permissive
@@ -116,7 +116,33 @@ kmeans_icc = function( mymat, threshold.icc ){
 	return( kmdat )
 } # End kmeans.vars
 
-
+kmeans_icc = function( mymat, threshold.icc ){
+	m = ncol(mymat)
+	flag.low = NULL
+	
+	# guess:
+	k = round( m * threshold.icc )
+	tmp.km = km_icc( mymat, k )
+	min.icc = min( tmp.km[[ 2 ]][ , "pct.var" ] )
+	k1 = ifelse(min.icc < threshold.icc, k + 1, k - 1) 
+	k.incr = ifelse(k1 > k, 1, -1)
+	
+	iter = TRUE
+	while( iter ){
+		tmp.km.old = tmp.km
+		tmp.km = km_icc( mymat, k1 )
+		min.icc = min( tmp.km[[ 2 ]][ , "pct.var" ] )
+		if( k1 > k && min.icc > threshold.icc ) break
+		if( k1 < k && min.icc < threshold.icc ){ 
+			tmp.km = tmp.km.old
+			break
+		}
+		k = k1
+		k1 = k1 + k.incr
+		if( k1 >= m || k1 <= 1 ) break
+	}
+	return( tmp.km )
+} # End kmeans.vars
 
 
 
